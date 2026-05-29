@@ -3,10 +3,12 @@ import { useNavigate } from 'react-router-dom'
 import { progressApi } from '../api/progress'
 import { Card } from '../components/ui'
 import { useAuth } from '../context/AuthContext'
+import PersonalRankCard from '../components/ranking/PersonalRankCard'
 
 export default function DashboardPage() {
   const { user } = useAuth()
   const navigate = useNavigate()
+  const isAdmin = user?.role === 'Admin'
 
   const { data: progress, isLoading } = useQuery({
     queryKey: ['progress'],
@@ -112,6 +114,8 @@ export default function DashboardPage() {
           </div>
         </Card>
       )}
+
+      {!isAdmin && <PersonalRankCard />}
 
       <div className="flex justify-center pt-4">
         <button

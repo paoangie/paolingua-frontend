@@ -85,7 +85,7 @@ export default function LessonsPage() {
           return (
             <Card
               key={lesson.id}
-              onClick={() => navigate(`/lessons/${lesson.id}`)}
+              onClick={() => navigate(`/lessons/${lesson.id}/theory`)}
               className="flex items-center justify-between"
             >
               <div className="flex items-center gap-4">

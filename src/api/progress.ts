@@ -6,6 +6,7 @@ import type {
   CompleteLessonResponse,
   StreakResponse,
   LeaderboardEntry,
+  UserRank,
 } from '../types'
 
 export const progressApi = {
@@ -24,4 +25,6 @@ export const progressApi = {
 
   getLeaderboard: (limit = 10) =>
     apiClient.get<LeaderboardEntry[]>(`/progress/leaderboard?limit=${limit}`),
+
+  getMyRank: () => apiClient.get<UserRank>('/progress/me/rank'),
 }

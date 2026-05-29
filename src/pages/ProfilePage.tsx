@@ -3,9 +3,11 @@ import { useMutation } from '@tanstack/react-query'
 import { userApi } from '../api/user'
 import { useAuth } from '../context/AuthContext'
 import { Card, Input, Button } from '../components/ui'
+import PersonalRankCard from '../components/ranking/PersonalRankCard'
 
 export default function ProfilePage() {
   const { user } = useAuth()
+  const isAdmin = user?.role === 'Admin'
 
   const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
@@ -80,6 +82,8 @@ export default function ProfilePage() {
           </div>
         </div>
       </Card>
+
+      {!isAdmin && <PersonalRankCard />}
 
       <Card>
         <h2 className="mb-4 text-lg font-semibold text-gray-900">

@@ -42,6 +42,25 @@ const navItems = [
 
 export default function Sidebar() {
   const { user, logout } = useAuth()
+  const isAdmin = user?.role === 'Admin'
+
+  const allItems = [
+    ...navItems,
+    ...(isAdmin
+      ? [
+          {
+            to: '/admin/theory',
+            label: 'Gestión Teoría',
+            icon: (
+              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+              </svg>
+            ),
+          },
+        ]
+      : []),
+  ]
+
   return (
     <aside className="flex h-full w-64 flex-col bg-white border-r border-gray-200">
       <div className="flex items-center gap-2 border-b border-gray-200 px-6 py-5">
@@ -49,7 +68,7 @@ export default function Sidebar() {
         <span className="text-xl font-bold text-purple-700">PaoLingua</span>
       </div>
       <nav className="flex-1 space-y-1 px-3 py-4">
-        {navItems.map((item) => (
+        {allItems.map((item) => (
           <NavLink
             key={item.to}
             to={item.to}

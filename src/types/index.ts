@@ -200,3 +200,79 @@ export interface CompleteLessonRequest {
   completed: boolean
   timeSpentSeconds: number
 }
+
+export interface TheoryContent {
+  title: string
+  introduction: string
+  sections: TheorySection[]
+  summary: string
+}
+
+export type TheorySection =
+  | VocabularySection
+  | GrammarSection
+  | PhrasesSection
+  | CulturalNoteSection
+
+export interface VocabularySection {
+  type: 'vocabulary'
+  title: string
+  items: VocabularyItem[]
+}
+
+export interface VocabularyItem {
+  term: string
+  translation: string
+  pronunciation: string
+  example: string
+}
+
+export interface GrammarSection {
+  type: 'grammar'
+  title: string
+  rules: GrammarRule[]
+}
+
+export interface GrammarRule {
+  explanation: string
+  examples: string[]
+  tip: string
+}
+
+export interface PhrasesSection {
+  type: 'phrases'
+  title: string
+  phrases: PhraseItem[]
+}
+
+export interface PhraseItem {
+  phrase: string
+  translation: string
+  context: string
+}
+
+export interface CulturalNoteSection {
+  type: 'cultural_note'
+  title: string
+  content: string
+}
+
+export interface UserRank {
+  email: string
+  totalXp: number
+  completedLessons: number
+  rank: number
+  totalUsers: number
+  percentile: number
+}
+
+export interface AdminLessonItem {
+  id: number
+  title: string
+  level: number
+  xpReward: number
+  languageId: number
+  languageName: string
+  hasTheory: boolean
+  exerciseCount: number
+}

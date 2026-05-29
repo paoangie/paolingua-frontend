@@ -207,9 +207,15 @@ export default function LessonDetailPage() {
             </div>
           </div>
           <div className="mt-6 flex justify-center gap-4">
+            <Button
+              variant="outline"
+              onClick={() => navigate(`/lessons/${lessonId}/theory`)}
+            >
+              Repasar teoría
+            </Button>
             <Button variant="outline" onClick={handleRetry}>Reintentar</Button>
             {lessonResult.nextLessonId ? (
-              <Button onClick={() => navigate(`/lessons/${lessonResult.nextLessonId}`)}>
+              <Button onClick={() => navigate(`/lessons/${lessonResult.nextLessonId}/theory`)}>
                 Siguiente: {lessonResult.nextLessonTitle}
               </Button>
             ) : (

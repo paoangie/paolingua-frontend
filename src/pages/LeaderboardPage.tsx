@@ -2,9 +2,11 @@ import { useQuery } from '@tanstack/react-query'
 import { progressApi } from '../api/progress'
 import { Card } from '../components/ui'
 import { useAuth } from '../context/AuthContext'
+import PersonalRankCard from '../components/ranking/PersonalRankCard'
 
 export default function LeaderboardPage() {
   const { user } = useAuth()
+  const isAdmin = user?.role === 'Admin'
 
   const { data: leaderboard, isLoading } = useQuery({
     queryKey: ['leaderboard'],
@@ -12,10 +14,22 @@ export default function LeaderboardPage() {
   })
 
   const getRankDisplay = (rank: number) => {
-    if (rank === 1) return <span className="font-bold text-amber-500">#1</span>
-    if (rank === 2) return <span className="font-bold text-gray-400">#2</span>
-    if (rank === 3) return <span className="font-bold text-amber-700">#3</span>
+    if (rank === 1) return <span className="font-bold text-amber-500">🥇 #1</span>
+    if (rank === 2) return <span className="font-bold text-gray-400">🥈 #2</span>
+    if (rank === 3) return <span className="font-bold text-amber-700">🥉 #3</span>
     return <span className="text-gray-500">#{rank}</span>
+  }
+
+  if (!isAdmin) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Mi Ranking</h1>
+          <p className="text-gray-500">Tu progreso comparado con otros estudiantes</p>
+        </div>
+        <PersonalRankCard />
+      </div>
+    )
   }
 
   return (

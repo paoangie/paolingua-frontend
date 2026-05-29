@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { useAuth } from './context/AuthContext'
 import ProtectedRoute from './components/auth/ProtectedRoute'
+import AdminRoute from './components/auth/AdminRoute'
 import AppLayout from './components/layout/AppLayout'
 import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
@@ -8,8 +9,11 @@ import DashboardPage from './pages/DashboardPage'
 import LanguagesPage from './pages/LanguagesPage'
 import LessonsPage from './pages/LessonsPage'
 import LessonDetailPage from './pages/LessonDetailPage'
+import LessonTheoryPage from './pages/LessonTheoryPage'
 import LeaderboardPage from './pages/LeaderboardPage'
 import ProfilePage from './pages/ProfilePage'
+import AdminTheoryPage from './pages/AdminTheoryPage'
+import AdminTheoryEditPage from './pages/AdminTheoryEditPage'
 
 function GuestRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuth()
@@ -34,9 +38,14 @@ export default function App() {
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/languages" element={<LanguagesPage />} />
           <Route path="/languages/:languageId/lessons" element={<LessonsPage />} />
+          <Route path="/lessons/:id/theory" element={<LessonTheoryPage />} />
           <Route path="/lessons/:id" element={<LessonDetailPage />} />
           <Route path="/leaderboard" element={<LeaderboardPage />} />
           <Route path="/profile" element={<ProfilePage />} />
+          <Route element={<AdminRoute />}>
+            <Route path="/admin/theory" element={<AdminTheoryPage />} />
+            <Route path="/admin/theory/:lessonId" element={<AdminTheoryEditPage />} />
+          </Route>
         </Route>
       </Route>
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
