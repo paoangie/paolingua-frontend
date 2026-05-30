@@ -111,10 +111,10 @@ export default function LessonDetailPage() {
     },
   })
 
-  const exCount = exercises?.length ?? 0
-  const isLastExercise = currentIndex >= exCount - 1
+  const totalExercises = exercises?.length ?? 0
+  const isLastExercise = currentIndex >= totalExercises - 1
   const currentExercise = exercises?.[currentIndex]
-  const currentResult = results[currentIndex]
+  const currentExerciseResult = results[currentIndex]
 
   const finish = useCallback(() => {
     if (!exercises || results.length === 0) return
@@ -161,18 +161,18 @@ export default function LessonDetailPage() {
   }, [advance])
 
   useEffect(() => {
-    if (!currentResult || !showFeedback) return
+    if (!currentExerciseResult || !showFeedback) return
 
     if (advanceTimer.current) clearTimeout(advanceTimer.current)
 
-    if (currentResult.correct) {
+    if (currentExerciseResult.correct) {
       advanceTimer.current = setTimeout(advance, 1200)
     }
 
     return () => {
       if (advanceTimer.current) clearTimeout(advanceTimer.current)
     }
-  }, [currentResult, showFeedback, advance])
+  }, [currentExerciseResult, showFeedback, advance])
 
   const handleRetry = () => {
     setCurrentIndex(0)
@@ -240,8 +240,8 @@ export default function LessonDetailPage() {
   }
 
   if (lessonComplete && lessonResult) {
-    const avgScore = calculateAverageScore(results)
-    const approved = avgScore >= 70
+    const averageScore = calculateAverageScore(results)
+    const approved = averageScore >= 70
 
     return (
       <div className="mx-auto max-w-3xl py-8">
@@ -275,7 +275,7 @@ export default function LessonDetailPage() {
                   </p>
 
                   <p className="mt-2 text-3xl font-black text-slate-950">
-                    {avgScore}
+                    {averageScore}
                     <span className="text-base text-slate-400">/100</span>
                   </p>
                 </div>
@@ -334,9 +334,12 @@ export default function LessonDetailPage() {
     )
   }
 
-  const safeIndex = Math.min(currentIndex, exCount - 1)
-  const safeExCount = Math.max(exCount, 1)
-  const progressPercent = calculateProgressPercent(safeIndex, safeExCount)
+  const safeIndex = Math.min(currentIndex, totalExercises - 1)
+  const safeTotalExercises = Math.max(totalExercises, 1)
+  const progressPercent = calculateProgressPercent(
+    safeIndex,
+    safeTotalExercises
+  )
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
@@ -369,7 +372,9 @@ export default function LessonDetailPage() {
 
             <p className="mt-1 text-3xl font-black text-white">
               {safeIndex + 1}
-              <span className="text-lg text-slate-400">/{safeExCount}</span>
+              <span className="text-lg text-slate-400">
+                /{safeTotalExercises}
+              </span>
             </p>
           </div>
         </div>
@@ -391,7 +396,7 @@ export default function LessonDetailPage() {
 
       <div className="grid gap-2 sm:grid-cols-3">
         {exercises.map((_, index) => {
-          const result = results[index]
+          const exerciseResult = results[index]
           const isDone = index < currentIndex
           const isCurrent = index === currentIndex
 
@@ -400,7 +405,7 @@ export default function LessonDetailPage() {
               key={index}
               className={`h-2 rounded-full transition-all ${
                 isDone
-                  ? result?.correct
+                  ? exerciseResult?.correct
                     ? 'bg-teal-700'
                     : 'bg-slate-500'
                   : isCurrent
@@ -422,16 +427,18 @@ export default function LessonDetailPage() {
         <div className="p-6 sm:p-8">
           {currentExercise && (
             <ExerciseRenderer
-              key={currentExercise.id + (currentResult ? '-done' : '')}
+              key={
+                currentExercise.id + (currentExerciseResult ? '-done' : '')
+              }
               exercise={currentExercise}
               onSubmit={handleSubmit}
               isSubmitting={submitMutation.isPending}
               feedback={
-                currentResult && showFeedback
+                currentExerciseResult && showFeedback
                   ? {
-                      score: currentResult.score,
-                      feedback: currentResult.feedback,
-                      correct: currentResult.correct,
+                      score: currentExerciseResult.score,
+                      feedback: currentExerciseResult.feedback,
+                      correct: currentExerciseResult.correct,
                     }
                   : null
               }
