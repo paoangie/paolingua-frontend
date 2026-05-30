@@ -14,7 +14,7 @@ export default function LessonDetailPage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const { addToast } = useToast()
-  const advanceTimer = useRef<ReturnType<typeof setTimeout>>(undefined)
+  const advanceTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const [currentIndex, setCurrentIndex] = useState(0)
   const [results, setResults] = useState<SubmitResponse[]>([])
@@ -36,7 +36,9 @@ export default function LessonDetailPage() {
   })
 
   useEffect(() => {
-    return () => { if (advanceTimer.current) clearTimeout(advanceTimer.current) }
+    return () => {
+      if (advanceTimer.current) clearTimeout(advanceTimer.current)
+    }
   }, [])
 
   useEffect(() => {
@@ -81,13 +83,14 @@ export default function LessonDetailPage() {
         nextLessonId: data.data.nextLessonId,
         nextLessonTitle: data.data.nextLessonTitle,
       })
+
       setLessonComplete(true)
       addToast(`+${data.data.xpEarned} XP ganados`, 'success')
       queryClient.invalidateQueries({ queryKey: ['progress'] })
       queryClient.invalidateQueries({ queryKey: ['lessons'] })
     },
     onError: () => {
-      setSubmitError('Error al completar la leccion.')
+      setSubmitError('Error al completar la lección.')
     },
   })
 
@@ -98,15 +101,18 @@ export default function LessonDetailPage() {
 
   const finish = useCallback(() => {
     if (!exercises || results.length === 0) return
-    const total = results.reduce((s, r) => s + r.score, 0)
+
+    const total = results.reduce((sum, result) => sum + result.score, 0)
     completeMutation.mutate(Math.round(total / exercises.length))
   }, [exercises, results, completeMutation])
 
   const advance = useCallback(() => {
     setShowFeedback(false)
+
     if (!exercises) return
+
     if (currentIndex < exercises.length - 1) {
-      setCurrentIndex((i) => i + 1)
+      setCurrentIndex((index) => index + 1)
     } else {
       finish()
     }
@@ -115,13 +121,19 @@ export default function LessonDetailPage() {
   const handleSubmit = useCallback(
     (dto: ExerciseSubmitDto) => {
       if (!currentExercise) return
+
       setSubmitError(null)
+
       const enrichedDto: ExerciseSubmitDto = {
         ...dto,
         exerciseType: currentExercise.type,
         exerciseContent: JSON.stringify(currentExercise.content),
       }
-      submitMutation.mutate({ exerciseId: currentExercise.id, dto: enrichedDto })
+
+      submitMutation.mutate({
+        exerciseId: currentExercise.id,
+        dto: enrichedDto,
+      })
     },
     [currentExercise, submitMutation]
   )
@@ -133,12 +145,17 @@ export default function LessonDetailPage() {
 
   useEffect(() => {
     if (!currentResult || !showFeedback) return
+
     if (advanceTimer.current) clearTimeout(advanceTimer.current)
+
     if (currentResult.correct) {
       advanceTimer.current = setTimeout(advance, 1200)
     }
-    return () => { if (advanceTimer.current) clearTimeout(advanceTimer.current) }
-  }, [currentIndex, showFeedback, advance])
+
+    return () => {
+      if (advanceTimer.current) clearTimeout(advanceTimer.current)
+    }
+  }, [currentResult, showFeedback, advance])
 
   const handleRetry = () => {
     setCurrentIndex(0)
@@ -151,17 +168,28 @@ export default function LessonDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <div className="h-10 w-10 animate-spin rounded-full border-4 border-purple-500 border-t-transparent" />
+      <div className="flex items-center justify-center py-24">
+        <div className="h-11 w-11 animate-spin rounded-full border-4 border-slate-300 border-t-teal-700" />
       </div>
     )
   }
 
   if (isError) {
     return (
-      <div className="py-20 text-center">
-        <p className="text-red-500">Error al cargar los ejercicios</p>
-        <Button variant="outline" className="mt-4" onClick={() => navigate(-1)}>
+      <div className="mx-auto max-w-lg py-24 text-center">
+        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-3xl bg-red-50 text-xl font-black text-red-700">
+          !
+        </div>
+
+        <h1 className="mt-5 text-2xl font-black tracking-tight text-slate-950">
+          Error al cargar los ejercicios
+        </h1>
+
+        <p className="mt-2 text-sm text-slate-500">
+          No se pudieron obtener los ejercicios de esta lección.
+        </p>
+
+        <Button variant="outline" className="mt-6" onClick={() => navigate(-1)}>
           Volver
         </Button>
       </div>
@@ -170,9 +198,24 @@ export default function LessonDetailPage() {
 
   if (!exercises || exercises.length === 0) {
     return (
-      <div className="py-20 text-center">
-        <p className="text-gray-500">No hay ejercicios en esta leccion</p>
-        <Button variant="outline" className="mt-4" onClick={() => navigate('/languages')}>
+      <div className="mx-auto max-w-lg py-24 text-center">
+        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-3xl bg-slate-100 text-xl font-black text-slate-700">
+          —
+        </div>
+
+        <h1 className="mt-5 text-2xl font-black tracking-tight text-slate-950">
+          No hay ejercicios disponibles
+        </h1>
+
+        <p className="mt-2 text-sm text-slate-500">
+          Esta lección todavía no tiene ejercicios registrados.
+        </p>
+
+        <Button
+          variant="outline"
+          className="mt-6"
+          onClick={() => navigate('/languages')}
+        >
           Ir a idiomas
         </Button>
       </div>
@@ -180,47 +223,101 @@ export default function LessonDetailPage() {
   }
 
   if (lessonComplete && lessonResult) {
-    const avgScore = results.length > 0
-      ? Math.round(results.reduce((s, r) => s + r.score, 0) / results.length)
-      : 0
+    const avgScore =
+      results.length > 0
+        ? Math.round(
+            results.reduce((sum, result) => sum + result.score, 0) /
+              results.length
+          )
+        : 0
+
+    const approved = avgScore >= 70
 
     return (
-      <div className="mx-auto max-w-lg py-10">
-        <Card className="text-center">
-          <div className={`mx-auto flex h-16 w-16 items-center justify-center rounded-full text-2xl font-bold ${
-            avgScore >= 70 ? 'bg-purple-100 text-purple-700' : 'bg-amber-100 text-amber-700'
-          }`}>
-            {avgScore >= 70 ? 'A' : 'B'}
-          </div>
-          <h2 className="mt-4 text-2xl font-bold text-gray-900">
-            {avgScore >= 70 ? 'Leccion completada' : 'Sigue practicando'}
-          </h2>
-          <p className="mt-2 text-gray-500">{lessonResult.message}</p>
-          <div className="mt-6 space-y-3">
-            <div className="flex justify-between rounded-lg bg-gray-50 px-4 py-3">
-              <span className="text-gray-600">Puntaje promedio</span>
-              <span className="font-semibold">{avgScore}/100</span>
+      <div className="mx-auto max-w-3xl py-8">
+        <Card className="p-0">
+          <div className="overflow-hidden rounded-3xl">
+            <div className="bg-slate-950 px-8 py-10 text-center">
+              <div
+                className={`mx-auto flex h-20 w-20 items-center justify-center rounded-3xl text-3xl font-black ${
+                  approved
+                    ? 'bg-teal-400 text-slate-950'
+                    : 'bg-slate-700 text-white'
+                }`}
+              >
+                {approved ? 'OK' : 'RE'}
+              </div>
+
+              <h1 className="mt-6 text-3xl font-black tracking-tight text-white">
+                {approved ? 'Lección completada' : 'Sigue practicando'}
+              </h1>
+
+              <p className="mx-auto mt-3 max-w-md text-sm leading-6 text-slate-300">
+                {lessonResult.message}
+              </p>
             </div>
-            <div className="flex justify-between rounded-lg bg-purple-50 px-4 py-3">
-              <span className="text-purple-700">XP ganados</span>
-              <span className="font-semibold text-purple-700">+{lessonResult.xpEarned}</span>
+
+            <div className="space-y-6 p-8">
+              <div className="grid gap-4 sm:grid-cols-3">
+                <div className="rounded-3xl border border-slate-200 bg-slate-50 p-5 text-center">
+                  <p className="text-xs font-bold uppercase tracking-wide text-slate-400">
+                    Puntaje
+                  </p>
+
+                  <p className="mt-2 text-3xl font-black text-slate-950">
+                    {avgScore}
+                    <span className="text-base text-slate-400">/100</span>
+                  </p>
+                </div>
+
+                <div className="rounded-3xl border border-teal-200 bg-teal-50 p-5 text-center">
+                  <p className="text-xs font-bold uppercase tracking-wide text-teal-700">
+                    XP ganados
+                  </p>
+
+                  <p className="mt-2 text-3xl font-black text-teal-900">
+                    +{lessonResult.xpEarned}
+                  </p>
+                </div>
+
+                <div className="rounded-3xl border border-slate-200 bg-slate-50 p-5 text-center">
+                  <p className="text-xs font-bold uppercase tracking-wide text-slate-400">
+                    Ejercicios
+                  </p>
+
+                  <p className="mt-2 text-3xl font-black text-slate-950">
+                    {results.length}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-3 sm:flex-row sm:justify-center">
+                <Button variant="outline" onClick={handleRetry}>
+                  Reintentar
+                </Button>
+
+                <Button
+                  variant="outline"
+                  onClick={() => navigate(`/lessons/${lessonId}/theory`)}
+                >
+                  Repasar teoría
+                </Button>
+
+                {lessonResult.nextLessonId ? (
+                  <Button
+                    onClick={() =>
+                      navigate(`/lessons/${lessonResult.nextLessonId}/theory`)
+                    }
+                  >
+                    Siguiente lección
+                  </Button>
+                ) : (
+                  <Button onClick={() => navigate('/languages')}>
+                    Ver más idiomas
+                  </Button>
+                )}
+              </div>
             </div>
-          </div>
-          <div className="mt-6 flex justify-center gap-4">
-            <Button
-              variant="outline"
-              onClick={() => navigate(`/lessons/${lessonId}/theory`)}
-            >
-              Repasar teoría
-            </Button>
-            <Button variant="outline" onClick={handleRetry}>Reintentar</Button>
-            {lessonResult.nextLessonId ? (
-              <Button onClick={() => navigate(`/lessons/${lessonResult.nextLessonId}/theory`)}>
-                Siguiente: {lessonResult.nextLessonTitle}
-              </Button>
-            ) : (
-              <Button onClick={() => navigate('/languages')}>Mas lecciones</Button>
-            )}
           </div>
         </Card>
       </div>
@@ -229,51 +326,110 @@ export default function LessonDetailPage() {
 
   const safeIndex = Math.min(currentIndex, exCount - 1)
   const safeExCount = Math.max(exCount, 1)
+  const progressPercent = Math.round(((safeIndex + 1) / safeExCount) * 100)
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6">
-      <div className="flex items-center justify-between">
-        <button onClick={() => navigate(-1)} className="text-sm text-purple-600 hover:text-purple-700">
-          ← Volver
-        </button>
-        <span className="text-sm text-gray-500">
-          Ejercicio {safeIndex + 1} de {safeExCount}
-        </span>
-      </div>
+    <div className="mx-auto max-w-4xl space-y-6">
+      <section className="relative overflow-hidden rounded-[2rem] border border-slate-200 bg-slate-950 p-7 shadow-[0_24px_70px_rgba(15,23,42,0.20)]">
+        <div className="pointer-events-none absolute -right-24 -top-24 h-64 w-64 rounded-full bg-teal-500/20 blur-3xl" />
 
-      <div className="flex gap-1">
-        {exercises.map((_, idx) => (
-          <div
-            key={idx}
-            className={`h-2 flex-1 rounded-full ${
-              idx < currentIndex
-                ? results[idx]?.correct ? 'bg-purple-500' : 'bg-amber-400'
-                : idx === currentIndex ? 'bg-purple-300' : 'bg-gray-200'
-            }`}
-          />
-        ))}
+        <div className="relative flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <button
+              onClick={() => navigate(-1)}
+              className="mb-4 inline-flex items-center rounded-full border border-white/10 bg-white/10 px-4 py-2 text-sm font-semibold text-slate-200 transition-all hover:bg-white/15"
+            >
+              ← Volver
+            </button>
+
+            <h1 className="text-3xl font-black tracking-tight text-white">
+              Práctica de lección
+            </h1>
+
+            <p className="mt-2 text-sm leading-6 text-slate-300">
+              Resuelve cada ejercicio y revisa tu avance antes de completar la
+              lección.
+            </p>
+          </div>
+
+          <div className="rounded-3xl border border-white/10 bg-white/[0.06] px-5 py-4 text-right backdrop-blur-xl">
+            <p className="text-xs font-bold uppercase tracking-wide text-slate-400">
+              Ejercicio
+            </p>
+
+            <p className="mt-1 text-3xl font-black text-white">
+              {safeIndex + 1}
+              <span className="text-lg text-slate-400">/{safeExCount}</span>
+            </p>
+          </div>
+        </div>
+
+        <div className="relative mt-7">
+          <div className="mb-2 flex items-center justify-between text-xs font-semibold text-slate-400">
+            <span>Avance</span>
+            <span>{progressPercent}%</span>
+          </div>
+
+          <div className="h-3 overflow-hidden rounded-full bg-white/10">
+            <div
+              className="h-full rounded-full bg-gradient-to-r from-teal-400 to-teal-600 transition-all duration-700"
+              style={{ width: `${progressPercent}%` }}
+            />
+          </div>
+        </div>
+      </section>
+
+      <div className="grid gap-2 sm:grid-cols-3">
+        {exercises.map((_, index) => {
+          const result = results[index]
+          const isDone = index < currentIndex
+          const isCurrent = index === currentIndex
+
+          return (
+            <div
+              key={index}
+              className={`h-2 rounded-full transition-all ${
+                isDone
+                  ? result?.correct
+                    ? 'bg-teal-700'
+                    : 'bg-slate-500'
+                  : isCurrent
+                    ? 'bg-slate-950'
+                    : 'bg-slate-200'
+              }`}
+            />
+          )
+        })}
       </div>
 
       {submitError && (
-        <div className="rounded-lg bg-red-50 p-4 text-center text-sm text-red-700">{submitError}</div>
+        <div className="rounded-3xl border border-red-100 bg-red-50 px-5 py-4 text-center text-sm font-semibold text-red-700">
+          {submitError}
+        </div>
       )}
 
-      <Card className="p-8">
-        {currentExercise && (
-          <ExerciseRenderer
-            key={currentExercise.id + (currentResult ? '-done' : '')}
-            exercise={currentExercise}
-            onSubmit={handleSubmit}
-            isSubmitting={submitMutation.isPending}
-            feedback={currentResult && showFeedback ? {
-              score: currentResult.score,
-              feedback: currentResult.feedback,
-              correct: currentResult.correct,
-            } : null}
-            onFeedbackClose={handleFeedbackClose}
-            isLastExercise={isLastExercise}
-          />
-        )}
+      <Card className="p-0">
+        <div className="p-6 sm:p-8">
+          {currentExercise && (
+            <ExerciseRenderer
+              key={currentExercise.id + (currentResult ? '-done' : '')}
+              exercise={currentExercise}
+              onSubmit={handleSubmit}
+              isSubmitting={submitMutation.isPending}
+              feedback={
+                currentResult && showFeedback
+                  ? {
+                      score: currentResult.score,
+                      feedback: currentResult.feedback,
+                      correct: currentResult.correct,
+                    }
+                  : null
+              }
+              onFeedbackClose={handleFeedbackClose}
+              isLastExercise={isLastExercise}
+            />
+          )}
+        </div>
       </Card>
     </div>
   )
