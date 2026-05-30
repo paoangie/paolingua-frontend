@@ -1,117 +1,154 @@
 import {
   createContext,
-  useContext,
-  useState,
   useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
   type ReactNode,
 } from 'react'
+
+type ToastType = 'success' | 'error' | 'info'
 
 interface Toast {
   id: number
   message: string
-  type: 'success' | 'error' | 'info'
+  type: ToastType
 }
 
 interface ToastContextType {
   toasts: Toast[]
-  addToast: (message: string, type?: Toast['type']) => void
+  addToast: (message: string, type?: ToastType) => void
   removeToast: (id: number) => void
 }
 
 const ToastContext = createContext<ToastContextType | undefined>(undefined)
 
-let toastId = 0
+let toastSequence = 0
 
-const toastStyles = {
-  success: {
-    container: 'border-teal-200 bg-teal-50 text-teal-900',
-    icon: 'bg-teal-700 text-white',
-    label: 'Correcto',
-  },
-  error: {
-    container: 'border-red-200 bg-red-50 text-red-900',
-    icon: 'bg-red-700 text-white',
-    label: 'Error',
-  },
-  info: {
-    container: 'border-slate-200 bg-white text-slate-900',
-    icon: 'bg-slate-950 text-white',
-    label: 'Información',
-  },
+function createToast(message: string, type: ToastType = 'info'): Toast {
+  toastSequence += 1
+
+  return {
+    id: toastSequence,
+    message,
+    type,
+  }
+}
+
+function getToastStyles(type: ToastType) {
+  const styles: Record<ToastType, string> = {
+    success:
+      'border-teal-200 bg-teal-50 text-teal-900 shadow-[0_18px_45px_rgba(15,118,110,0.16)]',
+    error:
+      'border-red-200 bg-red-50 text-red-900 shadow-[0_18px_45px_rgba(220,38,38,0.14)]',
+    info:
+      'border-slate-200 bg-white text-slate-900 shadow-[0_18px_45px_rgba(15,23,42,0.12)]',
+  }
+
+  return styles[type]
+}
+
+function getToastIndicator(type: ToastType) {
+  const indicators: Record<ToastType, string> = {
+    success: 'bg-teal-600',
+    error: 'bg-red-600',
+    info: 'bg-slate-900',
+  }
+
+  return indicators[type]
 }
 
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([])
+  const timeoutRefs = useRef<Map<number, ReturnType<typeof setTimeout>>>(
+    new Map()
+  )
 
   const removeToast = useCallback((id: number) => {
-    setToasts((prev) => prev.filter((toast) => toast.id !== id))
+    setToasts((currentToasts) =>
+      currentToasts.filter((toast) => toast.id !== id)
+    )
+
+    const timeout = timeoutRefs.current.get(id)
+
+    if (timeout) {
+      clearTimeout(timeout)
+      timeoutRefs.current.delete(id)
+    }
   }, [])
 
   const addToast = useCallback(
-    (message: string, type: Toast['type'] = 'info') => {
-      const id = ++toastId
+    (message: string, type: ToastType = 'info') => {
+      const toast = createToast(message, type)
 
-      setToasts((prev) => [...prev, { id, message, type }])
+      setToasts((currentToasts) => [...currentToasts, toast])
 
-      setTimeout(() => {
-        removeToast(id)
+      const timeout = setTimeout(() => {
+        removeToast(toast.id)
       }, 4000)
+
+      timeoutRefs.current.set(toast.id, timeout)
     },
     [removeToast]
   )
 
+  useEffect(() => {
+    return () => {
+      timeoutRefs.current.forEach((timeout) => clearTimeout(timeout))
+      timeoutRefs.current.clear()
+    }
+  }, [])
+
+  const value = useMemo(
+    () => ({
+      toasts,
+      addToast,
+      removeToast,
+    }),
+    [toasts, addToast, removeToast]
+  )
+
   return (
-    <ToastContext.Provider value={{ toasts, addToast, removeToast }}>
+    <ToastContext.Provider value={value}>
       {children}
 
       <div className="fixed bottom-5 right-5 z-50 flex w-[calc(100%-2.5rem)] max-w-sm flex-col gap-3">
-        {toasts.map((toast) => {
-          const styles = toastStyles[toast.type]
+        {toasts.map((toast) => (
+          <button
+            key={toast.id}
+            type="button"
+            onClick={() => removeToast(toast.id)}
+            className={`
+              group overflow-hidden rounded-3xl border px-5 py-4 text-left
+              transition-all duration-300 hover:-translate-y-1
+              ${getToastStyles(toast.type)}
+            `}
+          >
+            <div className="flex items-start gap-3">
+              <span
+                className={`mt-1 h-3 w-3 shrink-0 rounded-full ${getToastIndicator(
+                  toast.type
+                )}`}
+              />
 
-          return (
-            <button
-              key={toast.id}
-              type="button"
-              onClick={() => removeToast(toast.id)}
-              className={`
-                group overflow-hidden rounded-3xl border p-0 text-left
-                shadow-[0_18px_45px_rgba(15,23,42,0.16)]
-                transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_24px_60px_rgba(15,23,42,0.20)]
-                ${styles.container}
-              `}
-            >
-              <div className="flex items-start gap-4 px-5 py-4">
-                <div
-                  className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl text-sm font-black ${styles.icon}`}
-                >
+              <div>
+                <p className="text-sm font-bold">
                   {toast.type === 'success'
-                    ? 'OK'
+                    ? 'Operación exitosa'
                     : toast.type === 'error'
-                      ? '!'
-                      : 'i'}
-                </div>
+                      ? 'Ocurrió un problema'
+                      : 'Información'}
+                </p>
 
-                <div className="min-w-0 flex-1">
-                  <p className="text-xs font-black uppercase tracking-wide opacity-70">
-                    {styles.label}
-                  </p>
-
-                  <p className="mt-1 text-sm font-semibold leading-5">
-                    {toast.message}
-                  </p>
-                </div>
-
-                <span className="text-lg font-bold opacity-40 transition-opacity group-hover:opacity-70">
-                  ×
-                </span>
+                <p className="mt-1 text-sm leading-6 opacity-80">
+                  {toast.message}
+                </p>
               </div>
-
-              <div className="h-1 w-full bg-black/5">
-                <div className="h-full w-full origin-left animate-[toastProgress_4s_linear_forwards] bg-current opacity-35" />
-              </div>
-            </button>
-          )
-        })}
+            </div>
+          </button>
+        ))}
       </div>
     </ToastContext.Provider>
   )
@@ -121,7 +158,7 @@ export function useToast() {
   const context = useContext(ToastContext)
 
   if (!context) {
-    throw new Error('useToast must be used within a ToastProvider')
+    throw new Error('useToast debe usarse dentro de ToastProvider')
   }
 
   return context
