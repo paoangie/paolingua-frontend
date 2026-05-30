@@ -8,6 +8,23 @@ import { useToast } from '../context/ToastContext'
 import { Button, Card } from '../components/ui'
 import type { ExerciseSubmitDto, SubmitResponse } from '../types'
 
+function calculateAverageScore(results: SubmitResponse[]) {
+  if (results.length === 0) return 0
+
+  const totalScore = results.reduce(
+    (sum, exerciseResult) => sum + exerciseResult.score,
+    0
+  )
+
+  return Math.round(totalScore / results.length)
+}
+
+function calculateProgressPercent(currentIndex: number, totalExercises: number) {
+  if (totalExercises <= 0) return 0
+
+  return Math.round(((currentIndex + 1) / totalExercises) * 100)
+}
+
 export default function LessonDetailPage() {
   const { id } = useParams<{ id: string }>()
   const lessonId = Number(id)
@@ -102,8 +119,8 @@ export default function LessonDetailPage() {
   const finish = useCallback(() => {
     if (!exercises || results.length === 0) return
 
-    const total = results.reduce((sum, result) => sum + result.score, 0)
-    completeMutation.mutate(Math.round(total / exercises.length))
+    const averageScore = calculateAverageScore(results)
+    completeMutation.mutate(averageScore)
   }, [exercises, results, completeMutation])
 
   const advance = useCallback(() => {
@@ -223,14 +240,7 @@ export default function LessonDetailPage() {
   }
 
   if (lessonComplete && lessonResult) {
-    const avgScore =
-      results.length > 0
-        ? Math.round(
-            results.reduce((sum, result) => sum + result.score, 0) /
-              results.length
-          )
-        : 0
-
+    const avgScore = calculateAverageScore(results)
     const approved = avgScore >= 70
 
     return (
@@ -326,7 +336,7 @@ export default function LessonDetailPage() {
 
   const safeIndex = Math.min(currentIndex, exCount - 1)
   const safeExCount = Math.max(exCount, 1)
-  const progressPercent = Math.round(((safeIndex + 1) / safeExCount) * 100)
+  const progressPercent = calculateProgressPercent(safeIndex, safeExCount)
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
